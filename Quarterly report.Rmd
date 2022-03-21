@@ -1,0 +1,406 @@
+---
+title: "Carbapenem Resistant Organisms Quarterly Report"
+output:
+  html_document:
+    df_print: paged
+  output: word_document
+params:
+  quarter:
+    label: Which Quarter
+    value: null
+    input: select
+    choices:
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - Year to Date
+  year:
+    label: Year
+    value: null
+    input: text
+  CRE_File:
+    label: ' CRE File (needs .csv)'
+    value: null
+    input: file
+  CRPA_File:
+    label: ' CRPA File (needs .csv)'
+    value: null
+    input: file
+  CRAB_File:
+    label: ' CRAB File (needs .csv)'
+    value: null
+    input: file
+  WGS_log:
+    label: ' WGS Log File (needs .csv)'
+    value: null
+    input: file
+---
+
+```{r load-packages, include=FALSE}
+#Load Libraries
+library(tinytex)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(knitr)
+library(shiny)
+library(scales)
+```
+
+```{r echo=FALSE, results='asis'}
+#Setting parameters to data frames
+quarter <- params$quarter
+selected_year <- params$year
+cre_file <- params$CRE_File
+crpa_file <- params$CRPA_File
+crab_file <- params$CRAB_File
+wgs_file <- params$WGS_log
+
+#create subtitle to include desired quarter
+subtitle <- cat("## Quarter - ", quarter, ",") 
+if (quarter == 1) {
+  cat(' January-March', selected_year)
+} else if (quarter == 2) {
+  cat(' April-June', selected_year)
+} else if (quarter == 3) {
+  cat(' July-September', selected_year)
+} else if (quarter == 4) {
+  cat(' October-December', selected_year)
+} else {
+  cat('  ', selected_year)
+}
+```
+
+```{r, include=FALSE}
+#open the data sheet from the CRO line list saved as separate csv files 
+#Doesn't work right 
+cre_file <- gsub('\\\\', '/', cre_file) #Edit backslashes to forward slashes
+crpa_file <- gsub('\\\\', '/', crpa_file)
+crab_file <- gsub('\\\\', '/', crab_file)
+wgs_file <- gsub('\\\\', '/', wgs_file)
+
+cre <- read_csv(cre_file)
+crpa <- read_csv(crpa_file)
+crab <- read_csv(crab_file)
+wgs <- read_csv(wgs_file)
+```
+
+
+```{r, include=FALSE}
+#define color palettes
+Palette <- c("#9ca3ab", "#2980B9", "#F7ba59", "#e4180e", "#66A61E")
+PCR_Pallette <- c('Detected' = "#2980B9", 'Not detected' = "#9ca3ab")
+```
+
+
+```{r, include=FALSE}
+# Cleaning Columns
+#CRAB
+names(crab) <- crab[1,]
+crab <- crab[-1,] # Rename column names to be the first row data
+crab <- crab %>% #Selecting and renaming columns
+  select('DCLS - ID confirmation', 'Date received at DCLS', 'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP') %>%
+  rename(Species_ID = 'DCLS - ID confirmation', Date_Received = 'Date received at DCLS')%>%
+  mutate(Genus = 'CRAB') # Add a column to ID which spreadsheet the data came from
+head(crab)
+
+#CRPA
+names(crpa) <- crpa[1,]
+crpa <- crpa[-1,] # Rename column names to be the first row data
+crpa <- crpa %>%  #Selecting and renaming columns
+  select('DCLS - mCIM Result', 'DCLS - ID confirmation', 'Date received at DCLS', 
+         'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP') %>%
+  rename(mCIM = 'DCLS - mCIM Result', Species_ID = 'DCLS - ID confirmation', 
+         Date_Received = 'Date received at DCLS') %>%
+  mutate(Genus = 'CRPA') # Add a column to ID which spreadsheet the data came from
+
+#CRE
+names(cre) <- cre[1,]
+cre <- cre[-1,] # Rename column names to be the first row data
+cre <- cre %>% #Selecting and renaming columns
+  select('DCLS - mCIM Result', 'DCLS - ID confirmation', 'Date received at DCLS',
+         'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP') %>%
+  rename(mCIM = 'DCLS - mCIM Result', Species_ID = 'DCLS - ID confirmation', 
+         Date_Received = 'Date received at DCLS') %>%
+  mutate(Genus = 'CRE') # Add a column to ID which spreadsheet the data came from
+```
+```{r, include=FALSE}
+#Editing Species IDs
+#Format Genus Species to include space after period if none exists
+#Example: E. coli
+cre$Species_ID = gsub("\\.(?=[A-Za-z])", ". ", cre$Species_ID, perl = TRUE)
+#Fix typos in species names
+cre$Species_ID = gsub(".*E. co.*", "E. coli", cre$Species_ID)
+cre$Species_ID = gsub(".*pneu.*", "K. pneumoniae group", cre$Species_ID)
+cre$Species_ID = gsub(".*E. cl.*", "E. cloacae complex", cre$Species_ID)
+cre$Species_ID = gsub(".*oxy.*", "K. oxytoca/R. ornithinolytica", cre$Species_ID)
+cre$Species_ID = gsub(".*vulgaris.*", "P. vulagris group", cre$Species_ID)
+cre$Species_ID = gsub(".*freu.*", "C. freundii complex", cre$Species_ID)
+cre$Species_ID = gsub(".*aero.*", "E. aerogenes", cre$Species_ID)
+cre$Species_ID = gsub(".*mar.*", "S. marcescens", cre$Species_ID)
+```
+
+
+```{r, include=FALSE}
+#Combine all data into one table
+cro <- cre %>%
+  full_join(crpa) %>%
+  full_join(crab)
+cro
+```
+
+```{r, include=FALSE}
+#Splitting the Date into Month, Day, Year
+cro <- cro %>%
+  separate(Date_Received, c('Month', 'Day', 'Year'), '/')
+
+#Convert Month to numeric
+cro$Month <- as.numeric(cro$Month)
+
+#Convert numerical month to name
+cro$Month <- factor(month.abb[cro$Month],levels=month.abb)
+
+# Setting Quarter based on user input
+quarter1 <- subset(cro, Month == 'Jan'| Month == 'Feb'| Month == 'Mar')
+quarter2 <- subset(cro, Month == 'Apr'| Month == 'May'| Month == 'Jun')
+quarter3 <- subset(cro, Month == 'Jul'| Month == 'Aug'| Month == 'Sep')
+quarter4 <- subset(cro, Month == 'Oct'| Month == 'Nov'| Month == 'Dec')
+
+if (quarter == 1) {
+  quarter_ = quarter1
+} else if (quarter == 2) {
+  quarter_ = quarter2
+} else if (quarter == 3) {
+  quarter_ = quarter3
+} else if (quarter == 4) {
+  quarter_ = quarter4
+} else {
+  quarter_ = cro
+}
+
+```
+
+### Quarterly Totals
+
+```{r echo=FALSE}
+#Calculation of Genus totals per Quarter
+genus_totals <- quarter_ %>%
+  group_by(Genus) %>%
+  summarize(Totals = n())
+
+cro_total <- quarter_ %>% # total number of cro tested
+  summarize('CRO Total' = n())
+
+#build table
+kable(genus_totals)
+kable(cro_total)
+```
+
+
+```{r echo=FALSE, out.width="75%"}
+#bar graph of quarterly totals by genus
+bar <- ggplot(quarter_, aes(x = Month)) + 
+  geom_bar(aes(y = (..count..), fill = Genus), position = "dodge") +
+  geom_text(stat='count', aes(group=Genus, label=..count..), position = position_dodge(width = 0.9), vjust = 1.5, colour = "black") +
+  labs(x = "Per Month", y = "Count", title = "Monthly Total Isolates Tested") + 
+  scale_fill_manual(values=Palette)
+bar
+```
+
+### Results for Carbapenemase Detection
+
+```{r echo=FALSE, out.width="75%"}
+#bar graph of mCIM results by cre/crpa
+cre_crpa <- subset(quarter_, Genus != 'CRAB' & mCIM != 'NA')
+bar <- ggplot(cre_crpa, aes(y = Genus, na.rm = TRUE)) + geom_bar(aes(fill = mCIM)) +
+   geom_text(stat='count', aes(group=mCIM, label=..count..), 
+             position = position_stack(), hjust = "center", colour = "black") + 
+  labs(x = "Isolates Tested", title="CRO Carbapenemase Positive Organisms", 
+       subtitle="Based on mCIM Results") + scale_fill_manual(values=Palette) 
+bar
+```
+
+```{r echo=FALSE, out.width="75%"}
+#bar graph of mCIM results by cre species
+cre_quarter <- subset(quarter_, Genus == 'CRE' & mCIM != 'NA')
+bar <- ggplot(cre_quarter, aes(y = Species_ID, fill= mCIM, na.rm=TRUE)) + geom_bar() +
+  geom_text(stat = 'count', aes(group = mCIM, label = ..count..), 
+            position = position_stack(), hjust = "center", colour = "black") +
+  labs(y = "Species ID", x = "Isolates Tested", 
+       title="Carbapenemase Positive Organisms per CRE species", subtitle="Based on mCIM Results", ) +   scale_fill_manual(values=Palette) + 
+  scale_x_continuous(breaks = pretty_breaks()) 
+bar
+```
+
+### Carbapenem Resistant Enterbacterales PCR
+
+```{r echo=FALSE}
+#CRE PCR Genes Detected
+#Regrouping PCR Data
+cre_pcr <- quarter_ %>%
+  filter(Genus == 'CRE') %>%
+  gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
+```
+
+```{r echo=FALSE, out.width="75%"}
+#bar graph of CRE PCR gene data
+cre_pcr_pos <- subset(cre_pcr, Result != 'Not performed', na.rm=TRUE)
+bar <- ggplot(cre_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
+  geom_bar(position = position_stack(reverse = TRUE))  + 
+  geom_text(stat = 'count', aes(group = Result, label = ..count..), 
+            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") + 
+  labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRE PCR Genes Detected') + 
+  scale_fill_manual(values=PCR_Pallette)
+bar
+```
+
+```{r echo=FALSE, out.width="75%"}
+#bar graph of CRE PCR gene data per species
+#NEED TO INCLUDE GENES THAT HAD NONE DETECTED?
+cre_species <- subset(cre_pcr_pos, Result == 'Detected')
+bar <- ggplot(cre_species, aes(y = Species_ID, fill = PCR, na.rm=TRUE)) + geom_bar() +
+  geom_text(stat='count', aes(group = PCR, label = ..count..), 
+            position = position_stack(), hjust = "center", colour = "black") + 
+  labs(y = 'Species', x = 'Isolates Tested', title = 'CRE PCR Genes Detected', 
+       subtitle = 'Separated by species') + scale_fill_manual(values=Palette) +
+  scale_x_continuous(breaks = pretty_breaks())
+bar
+```
+
+### *Pseudomonas aeruginosa* PCR
+
+```{r echo=FALSE, out.width="75%"}
+#CRPA PCR Genes Detected
+#Regrouping PCR Data
+crpa_pcr <- quarter_ %>%
+  filter(Genus == 'CRPA') %>%
+  gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
+
+#bar graph of CRPA PCR gene data
+crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not performed')
+bar <-  ggplot(crpa_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
+  geom_bar(position= position_stack(reverse = TRUE)) +
+  geom_text(stat='count', aes(group=Result, label=..count..), 
+            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") +
+  labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRPA PCR Genes Detected') + 
+  scale_fill_manual(values=PCR_Pallette)
+bar
+```
+
+```{r echo=FALSE, results='asis', out.width="75%"}
+#bar graph of CRPA PCR gene data
+crpa_pcr_genes <- subset(crpa_pcr, Result == 'Detected')
+if(nrow(crpa_pcr_genes) != 0){
+  bar <-  ggplot(crpa_pcr_genes, aes(y = PCR, fill = Result)) + 
+    geom_bar(position= position_stack(reverse = TRUE)) +
+    geom_text(stat='count', aes(group=Result, label=..count..), 
+            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") +
+    labs(y = 'PCR Gene', x = 'Count', title = 'CRPA PCR Genes Detected') + 
+    scale_fill_manual(values=PCR_Pallette)
+  bar
+}else{
+  cat(paste0("No PCR genes detected in CRPA isolates"))
+}
+```
+
+### *Acinetobacter baumannii* PCR
+
+```{r echo=FALSE, out.width="75%"}
+#CRAB PCR Genes Detected
+#Regrouping PCR Data
+crab_pcr <- quarter_ %>%
+  filter(Genus == 'CRAB') %>%
+  gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
+
+#bar graph of CRAB PCR gene data
+crab_pcr_pos <- subset(crab_pcr, Result != 'Not performed')
+bar <-  ggplot(crab_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
+  geom_bar(position= position_stack(reverse = TRUE)) +
+  geom_text(stat='count', aes(group=Result, label=..count..), 
+            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") + 
+  labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRAB PCR Genes Detected') + 
+  scale_fill_manual(values=PCR_Pallette)
+bar
+```
+
+```{r echo=FALSE, results='asis', out.width="75%"}
+#bar graph of CRPA PCR gene data
+crab_pcr_genes <- subset(crab_pcr, Result == 'Detected')
+if(nrow(crab_pcr_genes) != 0){
+  bar <-  ggplot(crab_pcr_genes, aes(y = PCR, fill = Result)) + 
+    geom_bar(position= position_stack(reverse = TRUE)) +
+    geom_text(stat='count', aes(group=Result, label=..count..), 
+            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") +
+    labs(y = 'PCR Gene', x = 'Count', title = 'CRAB PCR Genes Detected') + 
+    scale_fill_manual(values=PCR_Pallette)
+  bar
+}else{
+  cat(paste0('No PCR genes detected in CRAB isolates'))
+}
+```
+
+### Whole Genome Sequencing Performed
+
+```{r echo=FALSE, warning=FALSE}
+#WGS data
+#Selecting desired columns
+wgs <- wgs %>%
+  select(Organism, `Date SRA# generated`, `Run Date`)
+
+#Splitting the Run Date into Month, Day, Year
+wgs <- wgs %>%
+  separate(`Run Date`, c('Run Month', 'Run Day', 'Run Year'), '/')
+
+#Splitting the SRA Date into Month, Day, Year
+wgs <- wgs %>%
+  separate(`Date SRA# generated`, c('SRA# Month', 'SRA# Day', 'SRA# Year'), '/')
+
+#Separating data by year
+wgs <- subset(wgs, `Run Year` == selected_year)
+
+#Convert SRA# Month to numeric
+wgs$`SRA# Month` <- as.numeric(wgs$`SRA# Month`, na.rm=TRUE)
+
+#Convert Run Month to numeric
+wgs$`Run Month` <- as.numeric(wgs$`Run Month`, na.rm=TRUE)
+
+#Convert numerical SRA# month to name
+wgs$`SRA# Month` <- factor(month.abb[wgs$`SRA# Month`],levels=month.abb)
+
+#Convert numerical Run month to name
+wgs$`Run Month` <- factor(month.abb[wgs$`Run Month`],levels=month.abb)
+
+# Setting Quarter based on user input
+quarter1_wgs <- subset(wgs, `Run Month` == 'Jan'| `Run Month` == 'Feb'| `Run Month` == 'Mar')
+quarter2_wgs <- subset(wgs, `Run Month` == 'Apr'| `Run Month` == 'May'| `Run Month` == 'Jun')
+quarter3_wgs <- subset(wgs, `Run Month` == 'Jul'| `Run Month` == 'Aug'| `Run Month` == 'Sep')
+quarter4_wgs <- subset(wgs, `Run Month` == 'Oct'| `Run Month` == 'Nov'| `Run Month` == 'Dec')
+
+if (quarter == 1) {
+  quarter_wgs = quarter1_wgs
+} else if (quarter == 2) {
+  quarter_wgs = quarter2_wgs
+} else if (quarter == 3) {
+  quarter_wgs = quarter3_wgs
+} else if (quarter == 4) {
+  quarter_wgs = quarter4_wgs
+} else {
+  quarter_wgs = wgs
+}
+
+#Calculation of organism totals per Quarter
+organism_totals_run <- quarter_wgs %>%
+  group_by(Organism) %>%
+  summarize('Number' = n())
+
+wgs_total_run <- quarter_wgs %>% # total number of cro tested
+  summarize('Total Number of Isolates Sequenced' = n())
+
+#build table
+kable(organism_totals_run)
+kable(wgs_total_run)
+```
+
+##### Report Generated: `r Sys.Date()`
