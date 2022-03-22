@@ -1,8 +1,8 @@
 # base image
-FROM rocker/verse:3.5.1
+FROM rocker/verse:4.1.2
 
 # metadata
-LABEL base.image="rocker/verse:3.5.1"
+LABEL base.image="rocker/verse:4.1.2"
 LABEL dockerfile.version="1"
 LABEL description="An R environment and script for generating a Quarterly Report for CROs"
 LABEL website="N/A"
