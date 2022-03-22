@@ -182,7 +182,11 @@ if (quarter == 1) {
 
 ```
 
+***
+
 ### Quarterly Totals
+
+***
 
 ```{r echo=FALSE}
 #Calculation of Genus totals per Quarter
@@ -198,6 +202,14 @@ kable(genus_totals)
 kable(cro_total)
 ```
 
+***
+
+###### CRE = Carbapenem Resistant *Enterobacterales* 
+###### CRPA = Carbapenem Resistant *Pseudomonas aeruginosa*
+###### CRAB = Carbapenem Resistant *Acinetobacter baumannii* 
+###### CRO = Carbapenem Resistant Organisms
+
+***
 
 ```{r echo=FALSE, out.width="75%"}
 #bar graph of quarterly totals by genus
@@ -209,14 +221,18 @@ bar <- ggplot(quarter_, aes(x = Month)) +
 bar
 ```
 
+***
+
 ### Results for Carbapenemase Detection
+
+***
 
 ```{r echo=FALSE, out.width="75%"}
 #bar graph of mCIM results by cre/crpa
 cre_crpa <- subset(quarter_, Genus != 'CRAB' & mCIM != 'NA')
 bar <- ggplot(cre_crpa, aes(y = Genus, na.rm = TRUE)) + geom_bar(aes(fill = mCIM)) +
    geom_text(stat='count', aes(group=mCIM, label=..count..), 
-             position = position_stack(), hjust = "center", colour = "black") + 
+             position = position_stack(vjust = 0.5), colour = "black") + 
   labs(x = "Isolates Tested", title="CRO Carbapenemase Positive Organisms", 
        subtitle="Based on mCIM Results") + scale_fill_manual(values=Palette) 
 bar
@@ -227,14 +243,18 @@ bar
 cre_quarter <- subset(quarter_, Genus == 'CRE' & mCIM != 'NA')
 bar <- ggplot(cre_quarter, aes(y = Species_ID, fill= mCIM, na.rm=TRUE)) + geom_bar() +
   geom_text(stat = 'count', aes(group = mCIM, label = ..count..), 
-            position = position_stack(), hjust = "center", colour = "black") +
+            position = position_stack(vjust = 0.5), colour = "black") +
   labs(y = "Species ID", x = "Isolates Tested", 
        title="Carbapenemase Positive Organisms per CRE species", subtitle="Based on mCIM Results", ) +   scale_fill_manual(values=Palette) + 
   scale_x_continuous(breaks = pretty_breaks()) 
 bar
 ```
 
-### Carbapenem Resistant Enterbacterales PCR
+***
+
+### Carbapenem Resistant Enterobacterales PCR
+
+***
 
 ```{r echo=FALSE}
 #CRE PCR Genes Detected
@@ -250,7 +270,7 @@ cre_pcr_pos <- subset(cre_pcr, Result != 'Not performed', na.rm=TRUE)
 bar <- ggplot(cre_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position = position_stack(reverse = TRUE))  + 
   geom_text(stat = 'count', aes(group = Result, label = ..count..), 
-            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") + 
+            position = position_stack(reverse = TRUE, vjust = 0.5), colour = "black") + 
   labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRE PCR Genes Detected') + 
   scale_fill_manual(values=PCR_Pallette)
 bar
@@ -260,16 +280,21 @@ bar
 #bar graph of CRE PCR gene data per species
 #NEED TO INCLUDE GENES THAT HAD NONE DETECTED?
 cre_species <- subset(cre_pcr_pos, Result == 'Detected')
-bar <- ggplot(cre_species, aes(y = Species_ID, fill = PCR, na.rm=TRUE)) + geom_bar() +
+bar <- ggplot(cre_species, aes(y = Species_ID, fill = PCR, na.rm=TRUE)) + 
+  geom_bar() +
   geom_text(stat='count', aes(group = PCR, label = ..count..), 
-            position = position_stack(), hjust = "center", colour = "black") + 
+            position = position_stack(vjust = 0.5), colour = "black") + 
   labs(y = 'Species', x = 'Isolates Tested', title = 'CRE PCR Genes Detected', 
        subtitle = 'Separated by species') + scale_fill_manual(values=Palette) +
   scale_x_continuous(breaks = pretty_breaks())
 bar
 ```
 
+***
+
 ### *Pseudomonas aeruginosa* PCR
+
+***
 
 ```{r echo=FALSE, out.width="75%"}
 #CRPA PCR Genes Detected
@@ -283,29 +308,25 @@ crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not performed')
 bar <-  ggplot(crpa_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
-            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") +
+            position = position_stack(reverse = TRUE, vjust = 0.5), colour = "black") +
   labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRPA PCR Genes Detected') + 
   scale_fill_manual(values=PCR_Pallette)
 bar
 ```
 
 ```{r echo=FALSE, results='asis', out.width="75%"}
-#bar graph of CRPA PCR gene data
+#print statement if no CRPA PCR genes detected
 crpa_pcr_genes <- subset(crpa_pcr, Result == 'Detected')
-if(nrow(crpa_pcr_genes) != 0){
-  bar <-  ggplot(crpa_pcr_genes, aes(y = PCR, fill = Result)) + 
-    geom_bar(position= position_stack(reverse = TRUE)) +
-    geom_text(stat='count', aes(group=Result, label=..count..), 
-            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") +
-    labs(y = 'PCR Gene', x = 'Count', title = 'CRPA PCR Genes Detected') + 
-    scale_fill_manual(values=PCR_Pallette)
-  bar
-}else{
+if(nrow(crpa_pcr_genes) == 0){
   cat(paste0("No PCR genes detected in CRPA isolates"))
 }
 ```
 
+***
+
 ### *Acinetobacter baumannii* PCR
+
+***
 
 ```{r echo=FALSE, out.width="75%"}
 #CRAB PCR Genes Detected
@@ -319,29 +340,25 @@ crab_pcr_pos <- subset(crab_pcr, Result != 'Not performed')
 bar <-  ggplot(crab_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
-            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") + 
+            position = position_stack(reverse = TRUE, vjust = 0.5), colour = "black") + 
   labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRAB PCR Genes Detected') + 
   scale_fill_manual(values=PCR_Pallette)
 bar
 ```
 
 ```{r echo=FALSE, results='asis', out.width="75%"}
-#bar graph of CRPA PCR gene data
+#print statement if no CRAB PCR genes detected
 crab_pcr_genes <- subset(crab_pcr, Result == 'Detected')
-if(nrow(crab_pcr_genes) != 0){
-  bar <-  ggplot(crab_pcr_genes, aes(y = PCR, fill = Result)) + 
-    geom_bar(position= position_stack(reverse = TRUE)) +
-    geom_text(stat='count', aes(group=Result, label=..count..), 
-            position = position_stack(reverse = TRUE), hjust = "center", colour = "black") +
-    labs(y = 'PCR Gene', x = 'Count', title = 'CRAB PCR Genes Detected') + 
-    scale_fill_manual(values=PCR_Pallette)
-  bar
-}else{
+if(nrow(crab_pcr_genes) == 0){
   cat(paste0('No PCR genes detected in CRAB isolates'))
 }
 ```
 
-### Whole Genome Sequencing Performed
+***
+
+### Whole Genome Sequencing
+
+***
 
 ```{r echo=FALSE, warning=FALSE}
 #WGS data
@@ -393,7 +410,7 @@ if (quarter == 1) {
 #Calculation of organism totals per Quarter
 organism_totals_run <- quarter_wgs %>%
   group_by(Organism) %>%
-  summarize('Number' = n())
+  summarize('Number Sequenced' = n())
 
 wgs_total_run <- quarter_wgs %>% # total number of cro tested
   summarize('Total Number of Isolates Sequenced' = n())
@@ -402,5 +419,7 @@ wgs_total_run <- quarter_wgs %>% # total number of cro tested
 kable(organism_totals_run)
 kable(wgs_total_run)
 ```
+
+***
 
 ##### Report Generated: `r Sys.Date()`
