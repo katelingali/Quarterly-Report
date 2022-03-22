@@ -1,9 +1,9 @@
 ---
 title: "Carbapenem Resistant Organisms Quarterly Report"
 output:
+  pdf_document: default
   html_document:
-    df_print: paged
-  output: word_document
+    df_print: paged  
 params:
   quarter:
     label: Which Quarter
