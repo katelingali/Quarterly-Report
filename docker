@@ -1,0 +1,26 @@
+# base image
+FROM rocker/verse:3.5.1
+
+# metadata
+LABEL base.image="rocker/verse:3.5.1"
+LABEL dockerfile.version="1"
+LABEL description="An R environment and script for generating a Quarterly Report for CROs"
+LABEL website="N/A"
+LABEL maintainer="Katelin Gali"
+LABEL maintainer.email="katelin.gali@dgs.virginia.gov"
+
+#install ubuntu dependencies
+
+# add keys and ppa; update sources; install latest version of R
+
+# install R packages
+RUN R -e "install.packages(c('readr',\
+  'ggplot2',\
+  'tidyr',\
+  'knitr',\
+  'shiny',\
+  'tinytex',\
+  'scales',\
+  'dplyr'), repos = 'http://cran.us.r-project.org')"
+  
+# install report repository
