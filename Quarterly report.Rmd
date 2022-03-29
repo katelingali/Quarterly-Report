@@ -30,7 +30,7 @@ params:
     value: null
     input: file
   WGS_log:
-    label: ' WGS Log File (needs .csv)'
+    label: ' WGS Data File (needs .csv)'
     value: null
     input: file
 ---
@@ -190,10 +190,10 @@ if (quarter == 1) {
 #Calculation of Genus totals per Quarter
 genus_totals <- quarter_ %>%
   group_by(Genus) %>%
-  summarize(Totals = n())
+  summarize("Isolates Submitted" = n())
 
 cro_total <- quarter_ %>% # total number of cro tested
-  summarize('CRO Total' = n())
+  summarize('CRO Total Isolates Submitted' = n())
 
 #build table
 kable(genus_totals)
