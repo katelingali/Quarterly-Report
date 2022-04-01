@@ -9,6 +9,39 @@ LABEL website="N/A"
 LABEL maintainer="Katelin Gali"
 LABEL maintainer.email="katelin.gali@dgs.virginia.gov"
 
+#install RStudio
+RUN apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    apt-transport-https \
+    build-essential \
+    curl \
+    gfortran \
+    libatlas-base-dev \
+    libbz2-dev \
+    libcairo2 \
+    libcurl4-openssl-dev \
+    libicu-dev \
+    liblzma-dev \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libpcre3-dev \
+    libtcl8.6 \
+    libtiff5 \
+    libtk8.6 \
+    libx11-6 \
+    libxt6 \
+    locales \
+    tzdata \
+    zlib1g-dev
+    
+# Install system dependencies for the tidyverse R packages
+RUN apt-get install -y \
+    make
+    libcurl4-openssl-dev
+    libssl-dev
+    pandoc
+    libxml2-dev
+    
 # install R packages
 RUN R -e "install.packages(c('readr',\
   'ggplot2',\
@@ -23,23 +56,13 @@ RUN R -e "install.packages(c('readr',\
 #unsure about this
 RUN mkdir quarterly_report
 
+#set working directory
 WORKDIR /quarterly_report
 
-
-# FROM defines the base docker image. This command has to come first in the file
-# The 'as' keyword lets you name the folowing stage. We use `app` for the production image
-FROM ubuntu:focal as app
+Template-
 
 # ARG sets environment variables during the build stage
 ARG SOFTWARENAME_VER="1.0.0"
-
-
-# RUN executes code during the build
-# Install dependencies via apt-get or yum if using a centos or fedora base
-RUN apt-get update && apt-get install -y \
- dependency_a \
- dependency_b \
- dependency_c
 
 # Install and/or setup more things. Make /data for use as a working dir
 # Example: ncbi-blast+ 2.9.0
@@ -69,8 +92,3 @@ RUN spades.py --test
 COPY my_tests.sh .
 RUN bash my_tests.sh
 
-# Option 3: write python unit tests in a tests/ directory in the same directory as your Dockerfile:
-RUN apt-get install -y python3
-RUN mkdir tests/
-COPY tests/ tests/
-RUN python3 -m unittest discover -s tests
