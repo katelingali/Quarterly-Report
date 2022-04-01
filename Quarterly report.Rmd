@@ -93,7 +93,7 @@ PCR_Pallette <- c('Detected' = "#409ad5", 'Not detected' = "#9ca3ab")
 ```
 
 
-```{r, include=FALSE}
+```{r, warning=FALSE, include=FALSE}
 # Cleaning Columns
 #CRAB
 names(crab) <- crab[1,]
@@ -186,7 +186,7 @@ if (quarter == 1) {
 
 \noindent\rule{16cm}{0.4pt}
 
-```{r echo=FALSE, out.width="100%"}
+```{r echo=FALSE, warning=FALSE, out.width="100%"}
 #Calculation of Genus totals per Quarter
 genus_totals <- quarter_ %>%
   group_by(Genus) %>%
@@ -218,6 +218,7 @@ bar <- ggplot(quarter_, aes(x = Month)) +
   scale_fill_manual(values=Palette)
 bar
 ```
+\newpage
 
 \noindent\rule{16cm}{0.4pt}
 
@@ -225,7 +226,7 @@ bar
 
 \noindent\rule{16cm}{0.4pt}
 
-```{r echo=FALSE, out.width="100%"}
+```{r echo=FALSE, warning=FALSE, out.width="100%"}
 #bar graph of mCIM results by cre/crpa
 cre_crpa <- subset(quarter_, Genus != 'CRAB' & mCIM != 'NA')
 bar <- ggplot(cre_crpa, aes(y = Genus, na.rm = TRUE)) + geom_bar(aes(fill = mCIM)) +
@@ -248,6 +249,8 @@ bar <- ggplot(cre_quarter, aes(y = Species_ID, fill= mCIM, na.rm=TRUE)) + geom_b
 bar
 ```
 
+\newpage
+
 \noindent\rule{16cm}{0.4pt}
 
 ### Carbapenem Resistant Enterobacterales PCR
@@ -262,7 +265,7 @@ cre_pcr <- quarter_ %>%
   gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
 ```
 
-```{r echo=FALSE, out.width="100%"}
+```{r echo=FALSE, warning=FALSE, out.width="100%"}
 #bar graph of CRE PCR gene data
 cre_pcr_pos <- subset(cre_pcr, Result != 'Not performed', na.rm=TRUE)
 bar <- ggplot(cre_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
@@ -287,6 +290,8 @@ bar <- ggplot(cre_species, aes(y = Species_ID, fill = PCR, na.rm=TRUE)) +
   scale_x_continuous(breaks = pretty_breaks())
 bar
 ```
+
+\newpage
 
 \noindent\rule{16cm}{0.4pt}
 
@@ -320,6 +325,8 @@ if(nrow(crpa_pcr_genes) == 0){
 }
 ```
 
+\newpage
+
 \noindent\rule{16cm}{0.4pt}
 
 ### *Acinetobacter baumannii* PCR
@@ -351,6 +358,8 @@ if(nrow(crab_pcr_genes) == 0){
   cat(paste0('No PCR genes detected in CRAB isolates'))
 }
 ```
+
+\newpage
 
 \noindent\rule{16cm}{0.4pt}
 
