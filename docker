@@ -9,7 +9,7 @@ LABEL website="N/A"
 LABEL maintainer="Katelin Gali"
 LABEL maintainer.email="katelin.gali@dgs.virginia.gov"
 
-#install RStudio
+# Install system dependencies for R
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-transport-https \
@@ -42,6 +42,13 @@ RUN apt-get install -y \
     pandoc
     libxml2-dev
     
+#install RStudio
+# download a version of R and build from source
+ARG R_VERSION=4.1.2
+RUN wget https://cdn.rstudio.com/r/ubuntu-1604/pkgs/r-${R_VERSION}_1_amd64.deb
+RUN apt-get install -y gdebi-core
+RUN gdebi r-${R_VERSION}_1_amd64.deb
+
 # install R packages
 RUN R -e "install.packages(c('readr',\
   'ggplot2',\
