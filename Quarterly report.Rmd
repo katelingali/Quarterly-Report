@@ -160,6 +160,9 @@ cro$Month <- as.numeric(cro$Month)
 #Convert numerical month to name
 cro$Month <- factor(month.abb[cro$Month],levels=month.abb)
 
+#Convert MCIM results to ignore case
+cro$mCIM = gsub("Positive", "positive", cro$mCIM)
+
 # Setting Quarter based on user input
 quarter1 <- subset(cro, Month == 'Jan'| Month == 'Feb'| Month == 'Mar')
 quarter2 <- subset(cro, Month == 'Apr'| Month == 'May'| Month == 'Jun')
@@ -267,7 +270,7 @@ cre_pcr <- quarter_ %>%
 
 ```{r echo=FALSE, warning=FALSE, out.width="100%"}
 #bar graph of CRE PCR gene data
-cre_pcr_pos <- subset(cre_pcr, Result != 'Not performed', na.rm=TRUE)
+cre_pcr_pos <- subset(cre_pcr, Result != 'Not Tested', na.rm=TRUE)
 bar <- ggplot(cre_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position = position_stack(reverse = TRUE))  + 
   geom_text(stat = 'count', aes(group = Result, label = ..count..), 
@@ -307,7 +310,7 @@ crpa_pcr <- quarter_ %>%
   gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
 
 #bar graph of CRPA PCR gene data
-crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not performed')
+crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not Tested')
 bar <-  ggplot(crpa_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
@@ -341,7 +344,7 @@ crab_pcr <- quarter_ %>%
   gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
 
 #bar graph of CRAB PCR gene data
-crab_pcr_pos <- subset(crab_pcr, Result != 'Not performed')
+crab_pcr_pos <- subset(crab_pcr, Result != 'Not Tested')
 bar <-  ggplot(crab_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
@@ -371,36 +374,26 @@ if(nrow(crab_pcr_genes) == 0){
 #WGS data
 #Selecting desired columns
 wgs <- wgs %>%
-  select(Organism, `Date SRA# generated`, `Run Date`)
-
-#Splitting the Run Date into Month, Day, Year
-wgs <- wgs %>%
-  separate(`Run Date`, c('Run Month', 'Run Day', 'Run Year'), '/')
+  select(Organism, `Date SRA# generated`)
 
 #Splitting the SRA Date into Month, Day, Year
 wgs <- wgs %>%
   separate(`Date SRA# generated`, c('SRA# Month', 'SRA# Day', 'SRA# Year'), '/')
 
 #Separating data by year
-wgs <- subset(wgs, `Run Year` == selected_year)
+wgs <- subset(wgs, `SRA# Year` == selected_year)
 
 #Convert SRA# Month to numeric
 wgs$`SRA# Month` <- as.numeric(wgs$`SRA# Month`, na.rm=TRUE)
 
-#Convert Run Month to numeric
-wgs$`Run Month` <- as.numeric(wgs$`Run Month`, na.rm=TRUE)
-
 #Convert numerical SRA# month to name
 wgs$`SRA# Month` <- factor(month.abb[wgs$`SRA# Month`],levels=month.abb)
 
-#Convert numerical Run month to name
-wgs$`Run Month` <- factor(month.abb[wgs$`Run Month`],levels=month.abb)
-
 # Setting Quarter based on user input
-quarter1_wgs <- subset(wgs, `Run Month` == 'Jan'| `Run Month` == 'Feb'| `Run Month` == 'Mar')
-quarter2_wgs <- subset(wgs, `Run Month` == 'Apr'| `Run Month` == 'May'| `Run Month` == 'Jun')
-quarter3_wgs <- subset(wgs, `Run Month` == 'Jul'| `Run Month` == 'Aug'| `Run Month` == 'Sep')
-quarter4_wgs <- subset(wgs, `Run Month` == 'Oct'| `Run Month` == 'Nov'| `Run Month` == 'Dec')
+quarter1_wgs <- subset(wgs, `SRA# Month` == 'Jan'| `SRA# Month` == 'Feb'| `SRA# Month` == 'Mar')
+quarter2_wgs <- subset(wgs, `SRA# Month` == 'Apr'| `SRA# Month` == 'May'| `SRA# Month` == 'Jun')
+quarter3_wgs <- subset(wgs, `SRA# Month` == 'Jul'| `SRA# Month` == 'Aug'| `SRA# Month` == 'Sep')
+quarter4_wgs <- subset(wgs, `SRA# Month` == 'Oct'| `SRA# Month` == 'Nov'| `SRA# Month` == 'Dec')
 
 if (quarter == 1) {
   quarter_wgs = quarter1_wgs
