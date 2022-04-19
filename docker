@@ -61,41 +61,7 @@ RUN R -e "install.packages(c('readr',\
   
 # install report repository
 #unsure about this
-RUN mkdir quarterly_report
+RUN mkdir /data
 
 #set working directory
-WORKDIR /quarterly_report
-
-Template-
-
-# ARG sets environment variables during the build stage
-ARG SOFTWARENAME_VER="1.0.0"
-
-# Install and/or setup more things. Make /data for use as a working dir
-# Example: ncbi-blast+ 2.9.0
-RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-linux.tar.gz && \
- tar -xzf ncbi-blast-2.9.0+-x64-linux.tar.gz && \
- rm ncbi-blast-2.9.0+-x64-linux.tar.gz && \
- mkdir /data
-
-# ENV instructions set environment variables that persist from the build into the resulting image
-# Use for e.g. $PATH and locale settings for compatibility with Singularity
-ENV PATH="/ncbi-blast-2.9.0+/bin:$PATH" \
- LC_ALL=C
-
-# WORKDIR sets working directory
 WORKDIR /data
-
-# A second FROM insruction creates a new stage
-# We use `test` for the test image
-FROM app as test
-
-# Demonstrate that the program is successfully installed
-
-# Option 1: run the program's internal tests, for example with SPAdes:
-RUN spades.py --test
-
-# Option 2: write your own tests in a bash script in the same directory as your Dockerfile:
-COPY my_tests.sh .
-RUN bash my_tests.sh
-
