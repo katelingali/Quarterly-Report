@@ -99,7 +99,7 @@ PCR_Pallette <- c('Detected' = "#409ad5", 'Not detected' = "#9ca3ab")
 names(crab) <- crab[1,]
 crab <- crab[-1,] # Rename column names to be the first row data
 crab <- crab %>% #Selecting and renaming columns
-  select('DCLS - ID confirmation', 'Date received at DCLS', 'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP') %>%
+  select('DCLS - ID confirmation', 'Date received at DCLS', 'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP', 'OXA-23', 'OXA-24', 'OXA-58') %>%
   rename(Species_ID = 'DCLS - ID confirmation', Date_Received = 'Date received at DCLS')%>%
   mutate(Genus = 'CRAB') # Add a column to ID which spreadsheet the data came from
 head(crab)
@@ -341,7 +341,7 @@ if(nrow(crpa_pcr_genes) == 0){
 #Regrouping PCR Data
 crab_pcr <- quarter_ %>%
   filter(Genus == 'CRAB') %>%
-  gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
+  gather('KPC','NDM','VIM','OXA-48','IMP', 'OXA-23', 'OXA-24', 'OXA-58', key = 'PCR', value = 'Result')
 
 #bar graph of CRAB PCR gene data
 crab_pcr_pos <- subset(crab_pcr, Result != 'Not Tested')
@@ -353,6 +353,7 @@ bar <-  ggplot(crab_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) +
   scale_fill_manual(values=PCR_Pallette)
 bar
 ```
+OXA PCR run on all CRAB isolates starting 06/01/2022. OXA PCR only run on cluster isolates before 06/01/2022.
 
 ```{r echo=FALSE, results='asis', out.width="75%"}
 #print statement if no CRAB PCR genes detected
