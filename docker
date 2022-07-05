@@ -10,7 +10,8 @@ LABEL maintainer="Katelin Gali"
 LABEL maintainer.email="katelin.gali@dgs.virginia.gov"
 
 # Install system dependencies for R
-RUN apt-get update -qq && \
+RUN apt-get update -qq \
+    && apt-get install -y wget \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-transport-https \
     build-essential \
@@ -36,18 +37,21 @@ RUN apt-get update -qq && \
     
 # Install system dependencies for the tidyverse R packages
 RUN apt-get install -y \
-    make
-    libcurl4-openssl-dev
-    libssl-dev
-    pandoc
+    make \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    pandoc \
     libxml2-dev
     
 #install RStudio
 # download a version of R and build from source
-ARG R_VERSION=4.1.2
-RUN wget https://cdn.rstudio.com/r/ubuntu-1604/pkgs/r-${R_VERSION}_1_amd64.deb
-RUN apt-get install -y gdebi-core
-RUN gdebi r-${R_VERSION}_1_amd64.deb
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E084DAB9 && \
+  apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 51716619E084DAB9 && \
+  apt-get update && apt-get -y upgrade && apt install -y software-properties-common && \
+  add-apt-repository ppa:marutter/c2d4u3.5 && \
+  echo "deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/" >> /etc/apt/sources.list && \
+  apt-get -y install r-base \
+  r-base-dev
 
 # install R packages
 RUN R -e "install.packages(c('readr',\
@@ -60,7 +64,6 @@ RUN R -e "install.packages(c('readr',\
   'dplyr'), repos = 'http://cran.us.r-project.org')"
   
 # install report repository
-#unsure about this
 RUN mkdir /data
 
 #set working directory
