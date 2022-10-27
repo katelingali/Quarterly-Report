@@ -58,6 +58,7 @@ wgs_file <- params$WGS_log
 
 #create subtitle to include desired quarter
 subtitle <- cat("## Quarter - ", quarter, ",") 
+
 if (quarter == 1) {
   cat(' January-March', selected_year)
 } else if (quarter == 2) {
@@ -73,7 +74,6 @@ if (quarter == 1) {
 
 ```{r, include=FALSE}
 #open the data sheet from the CRO line list saved as separate csv files 
-#Doesn't work right 
 cre_file <- gsub('\\\\', '/', cre_file) #Edit backslashes to forward slashes
 crpa_file <- gsub('\\\\', '/', crpa_file)
 crab_file <- gsub('\\\\', '/', crab_file)
@@ -124,22 +124,26 @@ cre <- cre %>% #Selecting and renaming columns
          Date_Received = 'Date received at DCLS') %>%
   mutate(Genus = 'CRE') # Add a column to ID which spreadsheet the data came from
 ```
+
 ```{r, include=FALSE}
 #Editing Species IDs
 #Format Genus Species to include space after period if none exists
 #Example: E. coli
 cre$Species_ID = gsub("\\.(?=[A-Za-z])", ". ", cre$Species_ID, perl = TRUE)
+cre$Species_ID <-sub("(.)", "\\U\\1",cre$Species_ID,perl=TRUE)
 #Fix typos in species names
 cre$Species_ID = gsub(".*E. co.*", "E. coli", cre$Species_ID)
 cre$Species_ID = gsub(".*pneu.*", "K. pneumoniae group", cre$Species_ID)
 cre$Species_ID = gsub(".*E. cl.*", "E. cloacae complex", cre$Species_ID)
 cre$Species_ID = gsub(".*oxy.*", "K. oxytoca/R. ornithinolytica", cre$Species_ID)
+cre$Species_ID = gsub(".*R. ornith.*", "K. oxytoca/R. ornithinolytica", cre$Species_ID)
 cre$Species_ID = gsub(".*vulgaris.*", "P. vulagris group", cre$Species_ID)
 cre$Species_ID = gsub(".*freu.*", "C. freundii complex", cre$Species_ID)
-cre$Species_ID = gsub(".*aero.*", "E. aerogenes", cre$Species_ID)
+cre$Species_ID = gsub(".*aero.*", "K. aerogenes", cre$Species_ID)
 cre$Species_ID = gsub(".*mar.*", "S. marcescens", cre$Species_ID)
+cre$Species_ID = gsub(".*P. mir.*", "P. mirabilis", cre$Species_ID)
+cre$Species_ID = gsub(".*M. mor.*", "M. morganii", cre$Species_ID)
 ```
-
 
 ```{r, include=FALSE}
 #Combine all data into one table
@@ -162,6 +166,7 @@ cro$Month <- factor(month.abb[cro$Month],levels=month.abb)
 
 #Convert MCIM results to ignore case
 cro$mCIM = gsub("Positive", "positive", cro$mCIM)
+cro$mCIM = gsub("Negative", "negative", cro$mCIM)
 
 # Setting Quarter based on user input
 quarter1 <- subset(cro, Month == 'Jan'| Month == 'Feb'| Month == 'Mar')
@@ -271,6 +276,12 @@ cre_pcr <- quarter_ %>%
 ```{r echo=FALSE, warning=FALSE, out.width="100%"}
 #bar graph of CRE PCR gene data
 cre_pcr_pos <- subset(cre_pcr, Result != 'Not Tested', na.rm=TRUE)
+
+#Convert PCR results to ignore case
+cre_pcr_pos$Result = gsub("detected", "Detected", cre_pcr_pos$Result)
+cre_pcr_pos$Result = gsub("*ot *etected", "Not Detected", cre_pcr_pos$Result)
+cre_pcr_pos$Result = gsub("not Detected", "Not Detected", cre_pcr_pos$Result)
+
 bar <- ggplot(cre_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position = position_stack(reverse = TRUE))  + 
   geom_text(stat = 'count', aes(group = Result, label = ..count..), 
@@ -302,7 +313,7 @@ bar
 
 \noindent\rule{16cm}{0.4pt}
 
-```{r echo=FALSE, out.width="75%"}
+```{r echo=FALSE, out.width="100%"}
 #CRPA PCR Genes Detected
 #Regrouping PCR Data
 crpa_pcr <- quarter_ %>%
@@ -310,7 +321,7 @@ crpa_pcr <- quarter_ %>%
   gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
 
 #bar graph of CRPA PCR gene data
-crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not Tested')
+crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not Tested') 
 bar <-  ggplot(crpa_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
@@ -320,7 +331,7 @@ bar <-  ggplot(crpa_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) +
 bar
 ```
 
-```{r echo=FALSE, results='asis', out.width="75%"}
+```{r echo=FALSE, results='asis', out.width="100%"}
 #print statement if no CRPA PCR genes detected
 crpa_pcr_genes <- subset(crpa_pcr, Result == 'Detected')
 if(nrow(crpa_pcr_genes) == 0){
@@ -353,9 +364,9 @@ bar <-  ggplot(crab_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) +
   scale_fill_manual(values=PCR_Pallette)
 bar
 ```
-OXA PCR run on all CRAB isolates starting 06/01/2022. OXA PCR only run on cluster isolates before 06/01/2022.
+OXA PCR (OXA-23, OXA-24, OXA-58) run on all CRAB isolates starting 06/01/2022. OXA PCR only run on cluster isolates before 06/01/2022. Several results still pending due to a delay at Maryland Public Health Laboratory.
 
-```{r echo=FALSE, results='asis', out.width="75%"}
+```{r echo=FALSE, results='asis', out.width="100%"}
 #print statement if no CRAB PCR genes detected
 crab_pcr_genes <- subset(crab_pcr, Result == 'Detected')
 if(nrow(crab_pcr_genes) == 0){
@@ -421,6 +432,6 @@ kable(organism_totals_run)
 kable(wgs_total_run)
 ```
 
-***
+\noindent\rule{16cm}{0.4pt}
 
 ##### Report Generated: `r Sys.Date()`
