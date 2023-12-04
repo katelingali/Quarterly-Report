@@ -1,7 +1,7 @@
----
 title: "Carbapenem Resistant Organisms Quarterly Report"
 output:
   pdf_document: default
+  
 params:
   quarter:
     label: Which Quarter
@@ -33,9 +33,11 @@ params:
     label: ' WGS Data File (needs .csv)'
     value: null
     input: file
+always_allow_html: true
 ---
 
 ```{r load-packages, include=FALSE}
+
 #Load Libraries
 library(tinytex)
 library(readr)
@@ -44,10 +46,19 @@ library(ggplot2)
 library(tidyr)
 library(knitr)
 library(shiny)
+library(kableExtra)
 library(scales)
+library(flextable)
 ```
 
 ```{r echo=FALSE, results='asis'}
+#File selection for code testing purposes only
+#cre_file <- file.choose()
+#crpa_file <- file.choose()
+#crab_file <- file.choose()
+#wgs_file <- file.choose()
+#quarter <- 3
+
 #Setting parameters to data frames
 quarter <- params$quarter
 selected_year <- params$year
@@ -99,8 +110,8 @@ PCR_Pallette <- c('Detected' = "#409ad5", 'Not detected' = "#9ca3ab")
 names(crab) <- crab[1,]
 crab <- crab[-1,] # Rename column names to be the first row data
 crab <- crab %>% #Selecting and renaming columns
-  select('DCLS - ID confirmation', 'Date received at DCLS', 'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP', 'OXA-23', 'OXA-24', 'OXA-58') %>%
-  rename(Species_ID = 'DCLS - ID confirmation', Date_Received = 'Date received at DCLS')%>%
+  select('DCLS - ID confirmation', 'Date received at DCLS', 'KPC', 'NDM', 'VIM', 'OXA-48', 'IMP', 'OXA-23', 'OXA-24/40', 'OXA-58', 'OXA-23-ref', 'OXA-24-ref', 'OXA-58-ref',) %>%
+  rename(Species_ID = 'DCLS - ID confirmation', Date_Received = 'Date received at DCLS') %>%
   mutate(Genus = 'CRAB') # Add a column to ID which spreadsheet the data came from
 head(crab)
 
@@ -133,16 +144,23 @@ cre$Species_ID = gsub("\\.(?=[A-Za-z])", ". ", cre$Species_ID, perl = TRUE)
 cre$Species_ID <-sub("(.)", "\\U\\1",cre$Species_ID,perl=TRUE)
 #Fix typos in species names
 cre$Species_ID = gsub(".*E. co.*", "E. coli", cre$Species_ID)
+cre$Species_ID = gsub(".*oli.*", "E. coli", cre$Species_ID)
 cre$Species_ID = gsub(".*pneu.*", "K. pneumoniae group", cre$Species_ID)
+cre$Species_ID = gsub(".*Pneu.*", "K. pneumoniae group", cre$Species_ID)
 cre$Species_ID = gsub(".*E. cl.*", "E. cloacae complex", cre$Species_ID)
+cre$Species_ID = gsub(".*oacae complex.*", "E. cloacae complex", cre$Species_ID)
 cre$Species_ID = gsub(".*oxy.*", "K. oxytoca/R. ornithinolytica", cre$Species_ID)
 cre$Species_ID = gsub(".*R. ornith.*", "K. oxytoca/R. ornithinolytica", cre$Species_ID)
 cre$Species_ID = gsub(".*vulgaris.*", "P. vulagris group", cre$Species_ID)
 cre$Species_ID = gsub(".*freu.*", "C. freundii complex", cre$Species_ID)
+cre$Species_ID = gsub(".*reundii.*", "C. freundii complex", cre$Species_ID)
 cre$Species_ID = gsub(".*aero.*", "K. aerogenes", cre$Species_ID)
 cre$Species_ID = gsub(".*mar.*", "S. marcescens", cre$Species_ID)
 cre$Species_ID = gsub(".*P. mir.*", "P. mirabilis", cre$Species_ID)
+cre$Species_ID = gsub(".*irabilis.*", "P. mirabilis", cre$Species_ID)
 cre$Species_ID = gsub(".*M. mor.*", "M. morganii", cre$Species_ID)
+cre$Species_ID = gsub(".*stua.*", "P. stuartii", cre$Species_ID)
+cre$Species_ID = gsub(".*H. Alvei.*", "H. alvei", cre$Species_ID)
 ```
 
 ```{r, include=FALSE}
@@ -194,18 +212,23 @@ if (quarter == 1) {
 
 \noindent\rule{16cm}{0.4pt}
 
-```{r echo=FALSE, warning=FALSE, out.width="100%"}
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, ft.align = "left", tab.cap = "Isolates Submitted", tab.id = "tab 1", label = "tab 1", out.width="100%"}
 #Calculation of Genus totals per Quarter
 genus_totals <- quarter_ %>%
   group_by(Genus) %>%
-  summarize("Isolates Submitted" = n())
+  summarize('Isolates Submitted' = n()) %>%
+  ungroup() %>%
+  bind_rows(summarise(Genus = 'Total', quarter_, 
+                      'Isolates Submitted' = n()))
 
 cro_total <- quarter_ %>% # total number of cro tested
   summarize('CRO Total Isolates Submitted' = n())
 
 #build table
-kable(genus_totals)
-kable(cro_total)
+table1 <- flextable(genus_totals)
+table1 <- autofit(table1)
+table1 <- bold(table1, i = 4, j = NULL, bold = TRUE, part = "body")
+theme_zebra(table1)
 ```
 
 \noindent\rule{16cm}{0.4pt}
@@ -223,7 +246,10 @@ bar <- ggplot(quarter_, aes(x = Month)) +
   geom_bar(aes(y = (..count..), fill = Genus), position = "dodge") +
   geom_text(stat='count', aes(group=Genus, label=..count..), position = position_dodge(width = 0.9), vjust = 1.5, colour = "black") +
   labs(x = "Per Month", y = "Count", title = "Monthly Total Isolates Tested") + 
-  scale_fill_manual(values=Palette)
+  scale_fill_manual(values=Palette) +
+  scale_y_continuous(expand=c(0,0))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
 bar
 ```
 \newpage
@@ -234,14 +260,17 @@ bar
 
 \noindent\rule{16cm}{0.4pt}
 
-```{r echo=FALSE, warning=FALSE, out.width="100%"}
+```{r echo=FALSE, warning=FALSE, message=FALSE, out.width="100%"}
 #bar graph of mCIM results by cre/crpa
 cre_crpa <- subset(quarter_, Genus != 'CRAB' & mCIM != 'NA')
 bar <- ggplot(cre_crpa, aes(y = Genus, na.rm = TRUE)) + geom_bar(aes(fill = mCIM)) +
-   geom_text(stat='count', aes(group=mCIM, label=..count..), 
-             position = position_stack(vjust = 0.5), colour = "black") + 
+  geom_text(stat='count', aes(group=mCIM, label=..count..), 
+             position = position_stack(vjust = 0.9), colour = "black") + 
   labs(x = "Isolates Tested", title="CRO Carbapenemase Positive Organisms", 
-       subtitle="Based on mCIM Results") + scale_fill_manual(values=Palette) 
+       subtitle="Based on mCIM Results") + scale_fill_manual(values=Palette) +
+  scale_x_continuous(expand=c(0,0))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
 bar
 ```
 
@@ -250,10 +279,12 @@ bar
 cre_quarter <- subset(quarter_, Genus == 'CRE' & mCIM != 'NA')
 bar <- ggplot(cre_quarter, aes(y = Species_ID, fill= mCIM, na.rm=TRUE)) + geom_bar() +
   geom_text(stat = 'count', aes(group = mCIM, label = ..count..), 
-            position = position_stack(vjust = 0.5), colour = "black") +
-  labs(y = "Species ID", x = "Isolates Tested", 
+            position = position_stack(vjust = 0.8), colour = "black") +
+  labs(y = element_blank(), x = "Isolates Tested", 
        title="Carbapenemase Positive Organisms per CRE species", subtitle="Based on mCIM Results", ) +   scale_fill_manual(values=Palette) + 
-  scale_x_continuous(breaks = pretty_breaks()) 
+  scale_x_continuous(breaks = pretty_breaks(), expand=c(0,0)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
 bar
 ```
 
@@ -273,7 +304,7 @@ cre_pcr <- quarter_ %>%
   gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
 ```
 
-```{r echo=FALSE, warning=FALSE, out.width="100%"}
+```{r echo=FALSE, warning=FALSE, message=FALSE, out.width="100%"}
 #bar graph of CRE PCR gene data
 cre_pcr_pos <- subset(cre_pcr, Result != 'Not Tested', na.rm=TRUE)
 
@@ -285,9 +316,12 @@ cre_pcr_pos$Result = gsub("not Detected", "Not Detected", cre_pcr_pos$Result)
 bar <- ggplot(cre_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position = position_stack(reverse = TRUE))  + 
   geom_text(stat = 'count', aes(group = Result, label = ..count..), 
-            position = position_stack(reverse = TRUE, vjust = 0.5), colour = "black") + 
+            position = position_stack(reverse = TRUE, vjust = 0.9), colour = "black") + 
   labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRE PCR Genes Detected') + 
-  scale_fill_manual(values=PCR_Pallette)
+  scale_fill_manual(values=PCR_Pallette) +
+  scale_x_continuous(expand=c(0,0))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
 bar
 ```
 
@@ -298,10 +332,15 @@ cre_species <- subset(cre_pcr_pos, Result == 'Detected')
 bar <- ggplot(cre_species, aes(y = Species_ID, fill = PCR, na.rm=TRUE)) + 
   geom_bar() +
   geom_text(stat='count', aes(group = PCR, label = ..count..), 
-            position = position_stack(vjust = 0.5), colour = "black") + 
-  labs(y = 'Species', x = 'Isolates Tested', title = 'CRE PCR Genes Detected', 
+            position = position_stack(vjust = 0.9), colour = "black") + 
+  labs(y = element_blank(), x = 'Isolates Tested',fill = 'Gene',  title = 'CRE PCR Genes Detected', 
        subtitle = 'Separated by species') + scale_fill_manual(values=Palette) +
-  scale_x_continuous(breaks = pretty_breaks())
+#  theme(legend.position = "bottom", #turn on to move legend if annual report
+#        legend.key.size = unit(.5, 'cm'),
+#        legend.text=element_text(size=9)) +
+  scale_x_continuous(breaks = pretty_breaks(), expand=c(0,0)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
 bar
 ```
 
@@ -320,14 +359,24 @@ crpa_pcr <- quarter_ %>%
   filter(Genus == 'CRPA') %>%
   gather('KPC','NDM','VIM','OXA-48','IMP', key = 'PCR', value = 'Result')
 
+#Convert PCR results to ignore case
+crpa_pcr$Result = gsub("detected", "Detected", crpa_pcr$Result)
+crpa_pcr$Result = gsub("DETECTED", "Detected", crpa_pcr$Result)
+crpa_pcr$Result = gsub("*ot *etected", "Not Detected", crpa_pcr$Result)
+crpa_pcr$Result = gsub("not Detected", "Not Detected", crpa_pcr$Result)
+
 #bar graph of CRPA PCR gene data
-crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not Tested') 
+crpa_pcr_pos <- subset(crpa_pcr, Result != 'Not Tested')
+
 bar <-  ggplot(crpa_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
-            position = position_stack(reverse = TRUE, vjust = 0.5), colour = "black") +
+            position = position_stack(reverse = TRUE, vjust = 0.9), colour = "black") +
   labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRPA PCR Genes Detected') + 
-  scale_fill_manual(values=PCR_Pallette)
+  scale_fill_manual(values=PCR_Pallette) +
+  scale_x_continuous(expand=c(0,0))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
 bar
 ```
 
@@ -350,21 +399,43 @@ if(nrow(crpa_pcr_genes) == 0){
 ```{r echo=FALSE, out.width="100%"}
 #CRAB PCR Genes Detected
 #Regrouping PCR Data
+quarter_ <- quarter_ %>%
+  unite('OXA-23', c(`OXA-23`,`OXA-23-ref`), na.rm = TRUE) %>%
+  unite('OXA-24/40', c(`OXA-24/40`,`OXA-24-ref`), na.rm = TRUE) %>%
+  unite('OXA-58', c(`OXA-58`,`OXA-58-ref`), na.rm = TRUE)
+
 crab_pcr <- quarter_ %>%
   filter(Genus == 'CRAB') %>%
-  gather('KPC','NDM','VIM','OXA-48','IMP', 'OXA-23', 'OXA-24', 'OXA-58', key = 'PCR', value = 'Result')
+  gather('KPC','NDM','VIM','OXA-48','IMP', 'OXA-23', 'OXA-24/40', 'OXA-58', key = 'PCR', value = 'Result') 
+
+#Convert PCR results to ignore case
+crab_pcr$Result = gsub("detected*", "Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("DETECTED*", "Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("Detected_Detected", "Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("*ot *etected_*", "Not Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("Not Detected_Not Detected", "Not Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("NOT Detected_*", "Not Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("not Detected_*", "Not Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("not Detected_*", "Not Detected", crab_pcr$Result)
+crab_pcr$Result = gsub("Not Detected_Not Detected*", "Not Detected", crab_pcr$Result)
+crab_pcr$Result[which(crab_pcr$Result=="Not DetectedNot Detected")] = "Not Detected"
 
 #bar graph of CRAB PCR gene data
 crab_pcr_pos <- subset(crab_pcr, Result != 'Not Tested')
+crab_pcr_pos <- crab_pcr_pos %>% filter(Result!= "")
 bar <-  ggplot(crab_pcr_pos, aes(y = PCR, fill = Result, na.rm=TRUE)) + 
   geom_bar(position= position_stack(reverse = TRUE)) +
   geom_text(stat='count', aes(group=Result, label=..count..), 
-            position = position_stack(reverse = TRUE, vjust = 0.5), colour = "black") + 
+            position = position_stack(reverse = TRUE, vjust = 0.9), colour = "black") + 
   labs(y = 'PCR Gene', x = 'Isolates Tested', title = 'CRAB PCR Genes Detected') + 
-  scale_fill_manual(values=PCR_Pallette)
+  scale_x_continuous(expand=c(0,0))+
+  scale_fill_manual(values=PCR_Pallette) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
 bar
 ```
-OXA PCR (OXA-23, OXA-24, OXA-58) run on all CRAB isolates starting 06/01/2022. OXA PCR only run on cluster isolates before 06/01/2022. Several results still pending due to a delay at Maryland Public Health Laboratory.
+OXA PCR (OXA-23, OXA-24, OXA-58) run on all CRAB isolates starting 06/01/2022. OXA PCR only run on cluster isolates before 06/01/2022. Repeat patients were not sent for testing at Maryland Public Health Laboratory which would explain the decreased number of isolates for the OXA PCR genes.  OXA PCR testing was added to DCLS testing protocol in August 2023.
 
 ```{r echo=FALSE, results='asis', out.width="100%"}
 #print statement if no CRAB PCR genes detected
@@ -382,7 +453,7 @@ if(nrow(crab_pcr_genes) == 0){
 
 \noindent\rule{16cm}{0.4pt}
 
-```{r echo=FALSE, warning=FALSE, out.width="100%"}
+```{r, echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, ft.align = "left", tab.cap = "Isolates Submitted for Whole Genome Sequencing", tab.id = "tab 2", label = "tab 2", out.width="100%"}
 #WGS data
 #Selecting desired columns
 wgs <- wgs %>%
@@ -422,14 +493,21 @@ if (quarter == 1) {
 #Calculation of organism totals per Quarter
 organism_totals_run <- quarter_wgs %>%
   group_by(Organism) %>%
-  summarize('Number Sequenced' = n())
+  summarize('Number Sequenced' = n()) %>%
+  ungroup() %>%
+  ungroup() %>%
+  bind_rows(summarise(Organism = 'Total', quarter_wgs, 
+                      'Number Sequenced' = n()))
 
-wgs_total_run <- quarter_wgs %>% # total number of cro tested
-  summarize('Total Number of Isolates Sequenced' = n())
+#wgs_total_run <- quarter_wgs %>% # total number of cro tested
+#  summarize('Total Number of Isolates Sequenced' = n())
 
 #build table
-kable(organism_totals_run)
-kable(wgs_total_run)
+table2 <- flextable(organism_totals_run) 
+table2 <- autofit(table2)
+table2 <- bold(table2, i = 13, j = NULL, bold = TRUE, part = "body")
+theme_zebra(table2)
+#kable(wgs_total_run)
 ```
 
 \noindent\rule{16cm}{0.4pt}
